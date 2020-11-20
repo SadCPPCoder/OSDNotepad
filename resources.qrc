@@ -1,0 +1,39 @@
+<RCC>
+    <qresource prefix="/">
+        <file>res/color/black.png</file>
+        <file>res/color/blue.png</file>
+        <file>res/color/brown.png</file>
+        <file>res/color/gray.png</file>
+        <file>res/color/green.png</file>
+        <file>res/color/orange.png</file>
+        <file>res/color/perple.png</file>
+        <file>res/color/pink.png</file>
+        <file>res/color/red.png</file>
+        <file>res/color/white.png</file>
+        <file>res/color/yellow.png</file>
+        <file>res/icon/about.png</file>
+        <file>res/icon/alipay.png</file>
+        <file>res/icon/alway_on_top.png</file>
+        <file>res/icon/background_color.png</file>
+        <file>res/icon/bold.png</file>
+        <file>res/icon/foreground_color.png</file>
+        <file>res/icon/format-strike.png</file>
+        <file>res/icon/format-underline.png</file>
+        <file>res/icon/img_origin.png</file>
+        <file>res/icon/img_small.png</file>
+        <file>res/icon/insert_img.png</file>
+        <file>res/icon/italic.png</file>
+        <file>res/icon/list.png</file>
+        <file>res/icon/new_file.png</file>
+        <file>res/icon/opacity_decrease.png</file>
+        <file>res/icon/opacity_increase.png</file>
+        <file>res/icon/open_file.png</file>
+        <file>res/icon/papal.png</file>
+        <file>res/icon/reset.png</file>
+        <file>res/icon/save_file.png</file>
+        <file>res/icon/table.png</file>
+        <file>res/icon/view_off.png</file>
+        <file>res/icon/view_on.png</file>
+        <file>res/icon/wechat.png</file>
+    </qresource>
+</RCC>
