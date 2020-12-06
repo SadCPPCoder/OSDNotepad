@@ -9,18 +9,15 @@
 #include <QLineEdit>
 #include <QToolButton>
 #include <QScrollBar>
+#include <QMouseEvent>
+#include <QHBoxLayout>
+#include <QPushButton>
 
 static const int DefaultFontSize = 14;
 static const QString tempFileName("./temp.osd");
 static const QString configFileName("./config.txt");
 static const QString lastFileConfig("LastOpenedFile=");
 static const int DefaultMinImgHeight = 100;
-static const QString colStr = QObject::tr("Col: ");
-static const QString rowStr = QObject::tr("Row: ");
-static const QString wordCntStr = QObject::tr("Word: ");
-static const QString newFileStr = QObject::tr("New File");
-static const QString changedStatusStr = QObject::tr("Unsaved");
-static const QString savedStatusStr = QObject::tr("Saved");
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -33,15 +30,33 @@ MainWindow::MainWindow(QWidget *parent) :
     mCurFile(),
     mFileModifiedFlag(false),
     mImgMinSize(DefaultMinImgHeight),
-    mPositionLabel(new QLabel(colStr + "0, " + rowStr + "0", this)),
-    mWordCntLabel(new QLabel(wordCntStr + "0", this)),
-    mFilePathEdit(new QLineEdit(newFileStr, this)),
-    mSaveStatusLabel(new QLabel(changedStatusStr, this))
+    mPositionLabel(new QLabel(tr("Col: ") + "0, " + tr("Row: ") + "0", this)),
+    mWordCntLabel(new QLabel(tr("Word: ") + "0", this)),
+    mFilePathEdit(new QLineEdit(tr("New File"), this)),
+    mSaveStatusLabel(new QLabel(tr("Unsaved"), this)),
+    mAbout(new About(this)),
+    mMousePoint(0, 0),
+    mMousePressed(false)
 {
     ui->setupUi(this);
     setupExtraUi();
 
-    setCentralWidget(mTextEdit);
+    // set a widget as central widget
+    // add text edit to the widget and
+    // set the layout to set the boarder
+    // off view mode.
+    QWidget *widget = new QWidget(this);
+    setCentralWidget(widget);
+    QHBoxLayout *layout = new QHBoxLayout(this);
+    layout->addWidget(mTextEdit);
+    layout->setMargin(0);
+    widget->setLayout(layout);
+    QPalette plt = widget->palette();
+    plt.setColor(QPalette::Background, QColor(43, 178,43));
+    widget->setAutoFillBackground(true);
+    widget->setPalette(plt);
+
+    on_actionReset_triggered();
 
     openLastFile();
 
@@ -51,6 +66,30 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::mouseReleaseEvent(QMouseEvent *event)
+{
+    Q_UNUSED(event);
+    mMousePressed = false;
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *event)
+{
+    if(event->button() == Qt::LeftButton)
+    {
+        mMousePressed = true;
+        mMousePoint = event->pos();
+    }
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent *event)
+{
+    if(mMousePressed)
+    {
+        mMousePressed = true;
+        move(event->pos() - mMousePoint + pos());
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -75,11 +114,35 @@ void MainWindow::closeEvent(QCloseEvent *event)
         }
 
         QFile file(configFileName);
+        if(file.exists())
+        {
+            file.remove();
+        }
         file.open(QIODevice::WriteOnly);
         QString lastOpenedFile = lastFileConfig;
         lastOpenedFile.append(mCurFile.fileName());
         file.write(lastOpenedFile.toUtf8());
         file.close();
+    }
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    if(event->modifiers() == (Qt::ControlModifier))
+    {
+        switch(event->key())
+        {
+        case Qt::Key_Equal:
+            mFontSizeSpinbox->stepUp();
+            break;
+
+        case Qt::Key_Minus:
+            mFontSizeSpinbox->stepDown();
+            break;
+
+        default:
+            break;
+        }
     }
 }
 
@@ -91,6 +154,7 @@ void MainWindow::setupExtraUi()
     ui->toolBarFont->insertWidget(ui->actionReset, mFontCobox);
     connect(mFontCobox, SIGNAL(currentFontFamilyChanged(QString)),
             this, SLOT(fontFamilyChanged(QString)));
+    mFontCobox->setToolTip(tr("Select font."));
 
     mTextEdit->setFontFamily(mFontCobox->currentText());
 
@@ -98,6 +162,8 @@ void MainWindow::setupExtraUi()
     ui->toolBarFont->insertWidget(ui->actionReset, mFontSizeSpinbox);
     connect(mFontSizeSpinbox, SIGNAL(currentValueChanged(int)),
             this, SLOT(fontSizeChanged(int)));
+    mFontSizeSpinbox->setToolTip(
+                tr("Set font size, Ctr+- to decrease, Ctrl+= to increase."));
 
     ui->toolBarFont->insertSeparator(ui->actionReset);
     QLabel *foregroundColorLbl = new QLabel(this);
@@ -111,6 +177,7 @@ void MainWindow::setupExtraUi()
     ui->toolBarFont->insertWidget(ui->actionReset, mForeColorCobox);
     connect(mForeColorCobox, SIGNAL(currentColorChanged(QColor)),
             this, SLOT(foregroundColorChanged(QColor)));
+    mForeColorCobox->setToolTip(tr("Set text color."));
 
     QLabel *backgroundColorLbl = new QLabel(this);
     backgroundColorLbl->setMargin(5);
@@ -123,6 +190,7 @@ void MainWindow::setupExtraUi()
     ui->toolBarFont->insertWidget(ui->actionReset, mBackColorCobox);
     connect(mBackColorCobox, SIGNAL(currentColorChanged(QColor)),
             this, SLOT(backgroundColorChanged(QColor)));
+    mBackColorCobox->setToolTip(tr("Set background color."));
 
     connect(mTextEdit, SIGNAL(cursorPositionChanged()),
             this, SLOT(textEditCursorPositionChanged()));
@@ -136,7 +204,7 @@ void MainWindow::setupExtraUi()
 
     mFilePathEdit->setAlignment(Qt::AlignRight);
     mFilePathEdit->setReadOnly(true);
-    setFilePath(newFileStr);
+    setFilePath(tr("New File"));
     mSaveStatusLabel->setFrameShape(QFrame::StyledPanel);
     mPositionLabel->setFrameShape(QFrame::StyledPanel);
     mWordCntLabel->setFrameShape(QFrame::StyledPanel);
@@ -208,8 +276,8 @@ void MainWindow::textEditCursorPositionChanged()
     ui->actionDeleteline->setChecked(mTextEdit->isFontDeleteline());
 
     // update status bar
-    mPositionLabel->setText(rowStr+QString::number(cursor.blockNumber()+1)+", "+
-                            colStr+QString::number(cursor.columnNumber()+1));
+    mPositionLabel->setText(tr("Row: ")+QString::number(cursor.blockNumber()+1)+", "+
+                            tr("Col: ")+QString::number(cursor.columnNumber()+1));
 }
 
 void MainWindow::textEditTextChanged()
@@ -217,8 +285,8 @@ void MainWindow::textEditTextChanged()
     mFileModifiedFlag = true;
 
     // status changed
-    mWordCntLabel->setText(wordCntStr+QString::number(mTextEdit->toPlainText().length()));
-    mSaveStatusLabel->setText(changedStatusStr);
+    mWordCntLabel->setText(tr("Word: ")+QString::number(mTextEdit->toPlainText().length()));
+    mSaveStatusLabel->setText(tr("Unsaved"));
 }
 
 void MainWindow::openLastFile()
@@ -233,14 +301,15 @@ void MainWindow::openLastFile()
         tmpFile.close();
         tmpFile.remove();
         mFileModifiedFlag = true;
-        setFilePath(newFileStr);
-        mSaveStatusLabel->setText(changedStatusStr);
+        setFilePath(tr("New File"));
+        mSaveStatusLabel->setText(tr("Unsaved"));
     }
     else if(configFile.exists())
     {
         configFile.open(QIODevice::ReadOnly);
         QString lastFile = configFile.readLine();
         configFile.close();
+        configFile.remove();
 
         if(lastFile.contains(lastFileConfig))
         {
@@ -260,7 +329,7 @@ void MainWindow::openLastFile()
                 mCurFile.close();
                 mFileModifiedFlag = false;
                 setFilePath(lastFileName);
-                mSaveStatusLabel->setText(savedStatusStr);
+                mSaveStatusLabel->setText(tr("Saved"));
             }
         }
     }
@@ -312,14 +381,7 @@ void MainWindow::on_actionReset_triggered()
     ui->actionDeleteline->setChecked(false);
 
     // Reset Font
-    mTextEdit->setFontFamily(mTextEdit->currentFont().defaultFamily());
-    mTextEdit->setFontSize(DefaultFontSize);
-    mTextEdit->setFontForegroundColor(Qt::black);
-    mTextEdit->setFontBackgroundColor(Qt::white);
-    mTextEdit->setFontBold(false);
-    mTextEdit->setFontItalic(false);
-    mTextEdit->setFontUnderline(false);
-    mTextEdit->setFontDeleteline(false);
+    mTextEdit->resetFontFormat();
 }
 
 void MainWindow::on_actionBold_triggered(bool checked)
@@ -377,7 +439,7 @@ void MainWindow::on_actionOpen_triggered()
             mFileModifiedFlag = false;
 
             setFilePath(fileName);
-            mSaveStatusLabel->setText(savedStatusStr);
+            mSaveStatusLabel->setText(tr("Saved"));
         }
     }
 }
@@ -409,6 +471,8 @@ void MainWindow::on_actionSave_triggered()
                 file.open(QIODevice::WriteOnly);
                 file.write(mTextEdit->toOSD().toLocal8Bit());
                 file.close();
+
+                mCurFile.setFileName(fileName);
             }
         }
         else
@@ -421,7 +485,8 @@ void MainWindow::on_actionSave_triggered()
             mCurFile.close();
         }
         mFileModifiedFlag = false;
-        mSaveStatusLabel->setText(savedStatusStr);
+        mSaveStatusLabel->setText(tr("Saved"));
+        setFilePath(mCurFile.fileName());
     }
 }
 
@@ -457,8 +522,8 @@ void MainWindow::on_actionNew_triggered()
     mCurFile.setFileName("");
     mTextEdit->clear();
     mFileModifiedFlag = false;
-    setFilePath(newFileStr);
-    mSaveStatusLabel->setText(changedStatusStr);
+    setFilePath(tr("New File"));
+    mSaveStatusLabel->setText(tr("Unsaved"));
 }
 
 void MainWindow::on_actionSmallImage_triggered(bool checked)
@@ -484,14 +549,16 @@ void MainWindow::on_actionView_triggered(bool checked)
     if(checked)
     {
         setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
+        centralWidget()->layout()->setMargin(4);
     }
     else
     {
         setWindowFlags(windowFlags() & (~Qt::FramelessWindowHint));
+        centralWidget()->layout()->setMargin(0);
     }
     showNormal();
 
-    static int defaultStatusH = 0;
+    static int defaultStatusH = ui->statusBar->height();
     bool visible = !checked;
     ui->toolBarFile->setVisible(visible);
     ui->toolBarFont->setVisible(visible);
@@ -502,11 +569,8 @@ void MainWindow::on_actionView_triggered(bool checked)
                 visible ? Qt::ScrollBarAsNeeded:
                           Qt::ScrollBarAlwaysOff);
 
-    if(!defaultStatusH)
-    {
-        defaultStatusH = ui->statusBar->height();
-    }
-    ui->statusBar->setMaximumHeight(visible ? defaultStatusH : 1);
+    ui->statusBar->setMaximumHeight(visible ? defaultStatusH : 18);
+    ui->statusBar->adjustSize();
 
     mTextEdit->setReadOnly(checked);
 }
@@ -525,4 +589,11 @@ void MainWindow::on_actionTransDecrease_triggered()
     {
         setWindowOpacity(windowOpacity() - 0.05);
     }
+}
+
+void MainWindow::on_actionAbout_triggered()
+{
+
+    mAbout->setModal(true);
+    mAbout->show();
 }

@@ -9,6 +9,7 @@
 #include "osdcolorcombobox.h"
 #include "osdfontcombobox.h"
 #include "osdspinbox.h"
+#include "about.h"
 
 namespace Ui {
 class MainWindow;
@@ -23,7 +24,11 @@ public:
     ~MainWindow();
 
 protected:
+    void mouseReleaseEvent(QMouseEvent *event);
+    void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
     void closeEvent(QCloseEvent *event);
+    void keyPressEvent(QKeyEvent *event);
 
 private:
     void setupExtraUi();
@@ -69,6 +74,8 @@ private slots:
 
     void on_actionTransDecrease_triggered();
 
+    void on_actionAbout_triggered();
+
 private:
     Ui::MainWindow *ui;
     OSDFontComboBox *mFontCobox;
@@ -83,6 +90,9 @@ private:
     QLabel *mWordCntLabel;
     QLineEdit *mFilePathEdit;
     QLabel *mSaveStatusLabel;
+    About *mAbout;
+    QPoint mMousePoint;
+    bool mMousePressed;
 };
 
 #endif // MAINWINDOW_H

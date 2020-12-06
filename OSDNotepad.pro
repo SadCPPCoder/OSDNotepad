@@ -29,17 +29,23 @@ SOURCES += \
     osdtextedit.cpp \
     osdfontcombobox.cpp \
     osdspinbox.cpp \
-    osdcolorcombobox.cpp
+    osdcolorcombobox.cpp \
+    about.cpp
 
 HEADERS += \
         mainwindow.h \
     osdtextedit.h \
     osdfontcombobox.h \
     osdspinbox.h \
-    osdcolorcombobox.h
+    osdcolorcombobox.h \
+    about.h
 
 FORMS += \
-        mainwindow.ui
+        mainwindow.ui \
+    about.ui
 
 RESOURCES += \
     resources.qrc
+
+TRANSLATIONS = lang_English.ts \
+               lang_Chinses.ts

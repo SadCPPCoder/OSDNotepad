@@ -23,6 +23,8 @@
 #define FONT_MIN_POINT_SIZE (8)
 #define FONT_MAX_POINT_SIZE (34)
 #define DEFAULT_FONT_POINT_SIZE (14)
+#define DEFAULT_LINE_HEIGHT_TYPE (1)
+#define DEFAULT_LINE_HEIGHT (100)
 
 static const QString fileName("test.osd");
 static const QString infoDataStart("\n<!--Info\n");
@@ -68,9 +70,9 @@ void OSDTextEdit::insertImage(const QImage &img)
     auto charFormat = cursor.charFormat();
 
     QTextImageFormat imgFormat;
+    imgFormat.merge(charFormat);
     imgFormat.setWidth(width);
     imgFormat.setHeight(height);
-    imgFormat.merge(charFormat);
     imgFormat.setName(name);
 
     document()->addResource(
@@ -241,6 +243,13 @@ void OSDTextEdit::resetFontFormat()
     setCurrentFont(font);
     setTextColor(Qt::black);
     setTextBackgroundColor(Qt::white);
+
+    // Reset line height
+    QTextBlockFormat format = textCursor().blockFormat();
+    format.setLineHeight(DEFAULT_LINE_HEIGHT,
+                         DEFAULT_LINE_HEIGHT_TYPE);
+    QTextCursor curCursor = textCursor();
+    curCursor.mergeBlockFormat(format);
 }
 
 void OSDTextEdit::setFontBold(bool bold)

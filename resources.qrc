@@ -35,5 +35,10 @@
         <file>res/icon/view_off.png</file>
         <file>res/icon/view_on.png</file>
         <file>res/icon/wechat.png</file>
+        <file>res/logo/logo.png</file>
+        <file>res/alipay.png</file>
+        <file>res/wechat.png</file>
+        <file>lang_Chinses.qm</file>
+        <file>lang_English.qm</file>
     </qresource>
 </RCC>
