@@ -1,7 +1,16 @@
+/*******************************************
+ * File Name: osdcolorcombobox.cpp
+ * Date: 2020-11-20
+ * Author: Bob.Zhang
+ *
+ * Description: Implement the color selection
+ * combobox widget.
+ *******************************************/
+
 #include "osdcolorcombobox.h"
 
 OSDColorComboBox::OSDColorComboBox(QWidget *parent,
-                                   OSDColorComboBoxColorIndexType colorIndex)
+            OSDColorComboBoxColorIndexType colorIndex)
     :QComboBox(parent)
     ,mTextChangedByUi(true)
     ,mColorVec()
@@ -69,5 +78,4 @@ void OSDColorComboBox::onCurrentIndexChanged(int index)
         QColor color(itemData(index).value<QString>());
         emit currentColorChanged(color);
     }
-
 }

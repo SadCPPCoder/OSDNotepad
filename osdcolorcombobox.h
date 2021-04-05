@@ -1,3 +1,12 @@
+/*******************************************
+ * File Name: osdcolorcombobox.h
+ * Date: 2020-11-20
+ * Author: Bob.Zhang
+ *
+ * Description: Declare the color selection
+ * combobox widget.
+ *******************************************/
+
 #ifndef OSDCOMBOBOX_H
 #define OSDCOMBOBOX_H
 

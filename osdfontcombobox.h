@@ -1,3 +1,12 @@
+/*******************************************
+ * File Name: osdfontcombobox.h
+ * Date: 2020-11-20
+ * Author: Bob.Zhang
+ *
+ * Description: Declare the combobox widget
+ * to set current font.
+ *******************************************/
+
 #ifndef OSDFONTCOMBOBOX_H
 #define OSDFONTCOMBOBOX_H
 

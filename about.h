@@ -1,3 +1,11 @@
+/*******************************************
+ * File Name: about.h
+ * Date: 2020-11-22
+ * Author: Bob.Zhang
+ *
+ * Description: Declaration of about page
+ *******************************************/
+
 #ifndef ABOUT_H
 #define ABOUT_H
 

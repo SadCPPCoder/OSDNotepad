@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>433</width>
-    <height>285</height>
+    <height>68</height>
    </rect>
   </property>
   <property name="font">
@@ -17,6 +17,9 @@
   </property>
   <property name="contextMenuPolicy">
    <enum>Qt::NoContextMenu</enum>
+  </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
   </property>
   <property name="windowTitle">
    <string>OSD Notepad</string>
@@ -33,6 +36,18 @@
   </property>
   <widget class="QWidget" name="centralWidget"/>
   <widget class="QToolBar" name="toolBarFile">
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>16777215</width>
+     <height>16777215</height>
+    </size>
+   </property>
    <property name="contextMenuPolicy">
     <enum>Qt::NoContextMenu</enum>
    </property>
@@ -62,7 +77,9 @@
    </attribute>
    <addaction name="actionNew"/>
    <addaction name="actionOpen"/>
+   <addaction name="actionOpenRecent"/>
    <addaction name="actionSave"/>
+   <addaction name="actionSaveAs"/>
    <addaction name="actionInsertImage"/>
    <addaction name="actionTransIncrease"/>
    <addaction name="actionTransDecrease"/>
@@ -75,6 +92,18 @@
    </property>
   </widget>
   <widget class="QToolBar" name="toolBarFont">
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>16777215</width>
+     <height>16777215</height>
+    </size>
+   </property>
    <property name="contextMenuPolicy">
     <enum>Qt::NoContextMenu</enum>
    </property>
@@ -108,6 +137,7 @@
    <addaction name="actionUnderline"/>
    <addaction name="actionDeleteline"/>
    <addaction name="actionReset"/>
+   <addaction name="actionShortcut"/>
    <addaction name="actionAbout"/>
   </widget>
   <action name="actionBold">
@@ -291,7 +321,7 @@
     <string>View mode, readonly. Ctrl+Shift+V</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Shift+V</string>
+    <string>Ctrl+Alt+V</string>
    </property>
   </action>
   <action name="actionTop">
@@ -362,6 +392,42 @@
    </property>
    <property name="toolTip">
     <string>About the application.</string>
+   </property>
+  </action>
+  <action name="actionOpenRecent">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/res/icon/open_recent_file.png</normaloff>:/res/icon/open_recent_file.png</iconset>
+   </property>
+   <property name="text">
+    <string>OpenRecent</string>
+   </property>
+   <property name="toolTip">
+    <string>Open recent files.</string>
+   </property>
+  </action>
+  <action name="actionSaveAs">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/res/icon/save_file_as.png</normaloff>:/res/icon/save_file_as.png</iconset>
+   </property>
+   <property name="text">
+    <string>SaveAs</string>
+   </property>
+   <property name="toolTip">
+    <string>Save as others.</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+S</string>
+   </property>
+  </action>
+  <action name="actionShortcut">
+   <property name="icon">
+    <iconset resource="resources.qrc">
+     <normaloff>:/res/icon/shortcut.png</normaloff>:/res/icon/shortcut.png</iconset>
+   </property>
+   <property name="text">
+    <string>Shortcut</string>
    </property>
   </action>
  </widget>

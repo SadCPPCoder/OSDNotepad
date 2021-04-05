@@ -1,13 +1,23 @@
+/*******************************************
+ * File Name: osdspinbox.h
+ * Date: 2020-11-20
+ * Author: Bob.Zhang
+ *
+ * Description: Implement the spinbox widget
+ * to used by main window.
+ *******************************************/
+
+#include "globalinfo.h"
 #include "osdspinbox.h"
 
 OSDSpinBox::OSDSpinBox(QWidget* parent)
     :QSpinBox(parent)
     ,mValueChangedByUi(true)
 {
-    setMinimum(8);
-    setMaximum(38);
+    setMinimum(FONT_MIN_POINT_SIZE);
+    setMaximum(FONT_MAX_POINT_SIZE);
     setSingleStep(2);
-    setValue(14);
+    setValue(DEFAULT_FONT_POINT_SIZE);
     setPrefix("Size:");
 
     connect(this, SIGNAL(valueChanged(int)), this, SLOT(onValueChanged(int)));

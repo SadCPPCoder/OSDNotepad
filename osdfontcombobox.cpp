@@ -1,10 +1,18 @@
+/*******************************************
+ * File Name: osdfontcombobox.cpp
+ * Date: 2020-11-20
+ * Author: Bob.Zhang
+ *
+ * Description: Implement the combobox widget
+ * to set current font.
+ *******************************************/
+
 #include "osdfontcombobox.h"
 
 OSDFontComboBox::OSDFontComboBox(QWidget *parent)
     :QFontComboBox(parent)
     ,mTextChangedByUi(true)
 {
-
     connect(this, SIGNAL(currentTextChanged(QString)), this, SLOT(onCurrentTextChanged(QString)));
 }
 

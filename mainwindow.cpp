@@ -1,45 +1,68 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
+/*******************************************
+ * File Name: mainwindow.cpp
+ * Date: 2020-11-20
+ * Author: Bob.Zhang
+ *
+ * Description: Implementation for the main
+ * window for the OSD Notepad application.
+ *******************************************/
+
+#include <QApplication>
 #include <QCoreApplication>
+#include <QDesktopWidget>
 #include <QFileDialog>
+#include <QHBoxLayout>
 #include <QImageReader>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
-#include <QLineEdit>
-#include <QToolButton>
-#include <QScrollBar>
+#include <QMimeData>
 #include <QMouseEvent>
-#include <QHBoxLayout>
+#include <QPrinter>
 #include <QPushButton>
+#include <QScrollBar>
+#include <QTextLayout>
+#include <QTextBlock>
+#include <QToolButton>
+#include "mainwindow.h"
+#include "globalinfo.h"
+#include "osdconfig.h"
+#include "ui_mainwindow.h"
 
 static const int DefaultFontSize = 14;
 static const QString tempFileName("./temp.osd");
-static const QString configFileName("./config.txt");
-static const QString lastFileConfig("LastOpenedFile=");
 static const int DefaultMinImgHeight = 100;
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(QString file, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     mFontCobox(new OSDFontComboBox(this)),
     mFontSizeSpinbox(new OSDSpinBox(this)),
     mForeColorCobox(new OSDColorComboBox(this, OSDColorComboBox::OSDBlack)),
     mBackColorCobox(new OSDColorComboBox(this, OSDColorComboBox::OSDWhite)),
-    mTextEdit(new OSDTextEdit(this)),
-    mCurFile(),
-    mFileModifiedFlag(false),
+    mTextEdit(NULL),
     mImgMinSize(DefaultMinImgHeight),
     mPositionLabel(new QLabel(tr("Col: ") + "0, " + tr("Row: ") + "0", this)),
-    mWordCntLabel(new QLabel(tr("Word: ") + "0", this)),
+    mWordCntLabel(new QLabel(tr("Char: ") + "0", this)),
     mFilePathEdit(new QLineEdit(tr("New File"), this)),
     mSaveStatusLabel(new QLabel(tr("Unsaved"), this)),
     mAbout(new About(this)),
+    mTabWgt(new QTabWidget(this)),
+    mRecentListWgt(new QListWidget(this)),
     mMousePoint(0, 0),
-    mMousePressed(false)
+    mMousePressed(false),
+    mSearchBar(this),
+    mShortcutDlg(new OSDShortcutDialog(this))
 {
     ui->setupUi(this);
-    setupExtraUi();
+    mSearchBar.hide();
+    mAbout->setModal(true);
+    mShortcutDlg->setModal(true);
+    QRect screenRect = QApplication::desktop()->screenGeometry();
+    QRect windowRect(screenRect.width()*0.2, screenRect.height()*0.2,
+                     screenRect.width()*0.6, screenRect.height()*0.6);
+    setGeometry(windowRect);
 
     // set a widget as central widget
     // add text edit to the widget and
@@ -47,20 +70,30 @@ MainWindow::MainWindow(QWidget *parent) :
     // off view mode.
     QWidget *widget = new QWidget(this);
     setCentralWidget(widget);
-    QHBoxLayout *layout = new QHBoxLayout(this);
-    layout->addWidget(mTextEdit);
+    QVBoxLayout *layout = new QVBoxLayout(widget);
+    layout->addWidget(mTabWgt);
+    layout->addWidget(&mSearchBar);
     layout->setMargin(0);
+    layout->setSpacing(0);
     widget->setLayout(layout);
     QPalette plt = widget->palette();
-    plt.setColor(QPalette::Background, QColor(43, 178,43));
     widget->setAutoFillBackground(true);
     widget->setPalette(plt);
 
-    on_actionReset_triggered();
+    setupExtraUi();
+    auto title = windowTitle();
+    title += QString::asprintf("_%d.%d", MAIN_VERSION_NO, SUB_VERSION_NO);
+    setWindowTitle(title);
 
-    openLastFile();
-
-    ui->actionSmallImage->setChecked(mTextEdit->isSmallImageMode());
+    QFileInfo fInfo(file);
+    if(fInfo.exists())
+    {
+        addNewEditPage(file);
+    }
+    else
+    {
+        openLastFile();
+    }
 }
 
 MainWindow::~MainWindow()
@@ -95,59 +128,102 @@ void MainWindow::mouseMoveEvent(QMouseEvent *event)
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     Q_UNUSED(event);
-    if(!mCurFile.exists() &&
-       mFileModifiedFlag &&
-       !mTextEdit->toPlainText().isEmpty())
+    OSDConfig::getInstance().cleanUnclosedFile();
+    for(int i = mTabWgt->count() - 1; i >= 0 ; --i)
     {
-        QFile file(tempFileName);
-        file.open(QIODevice::WriteOnly);
-
-        file.write(mTextEdit->toOSD().toUtf8());
-
-        file.close();
-    }
-    else if(mCurFile.exists())
-    {
-        if(mFileModifiedFlag)
+        auto edit = qobject_cast<OSDTextEdit*>(mTabWgt->widget(i));
+        auto fileName = closeEditPage(edit, i);
+        if(!fileName.isEmpty())
         {
-            on_actionSave_triggered();
+            OSDConfig::getInstance().appendUnclosedFile(fileName);
         }
-
-        QFile file(configFileName);
-        if(file.exists())
-        {
-            file.remove();
-        }
-        file.open(QIODevice::WriteOnly);
-        QString lastOpenedFile = lastFileConfig;
-        lastOpenedFile.append(mCurFile.fileName());
-        file.write(lastOpenedFile.toUtf8());
-        file.close();
     }
+
+    OSDConfig::getInstance().updateConfigFile();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if(event->modifiers() == (Qt::ControlModifier))
+    QKeySequence keySeq(event->modifiers() + event->key());
+    if(keySeq.matches(OSDConfig::getInstance()
+                      .getKeySequence(SK_FontSizeIncrease)))
     {
-        switch(event->key())
+        mFontSizeSpinbox->stepUp();
+        mTextEdit->setFocus();
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                        .getKeySequence(SK_FontSizeDecrease)))
+    {
+        mFontSizeSpinbox->stepDown();
+        mTextEdit->setFocus();
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                        .getKeySequence(SK_SearchBarShow)))
+    {
+        mSearchBar.show();
+        mSearchBar.setFocus();
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                        .getKeySequence(SK_SearchBarHide)))
+    {
+        mSearchBar.hide();
+        mTextEdit->setFocus();
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                        .getKeySequence(SK_FormatCopy)))
+    {
+        copyCharFormat();
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                        .getKeySequence(SK_FormatPaste)))
+    {
+        pasteCharFormat();
+    }
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    if(event->mimeData()->hasUrls())
+    {
+        event->acceptProposedAction();
+    }
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    const QMimeData *mimeData = event->mimeData();
+    if(mimeData->hasUrls())
+    {
+        QList<QUrl> urls = mimeData->urls();
+        for(int i=0; i<urls.size(); ++i)
         {
-        case Qt::Key_Equal:
-            mFontSizeSpinbox->stepUp();
-            break;
-
-        case Qt::Key_Minus:
-            mFontSizeSpinbox->stepDown();
-            break;
-
-        default:
-            break;
+            QString fileName = urls.at(i).toLocalFile();
+            QFileInfo fileInfo(fileName);
+            if(fileInfo.exists() &&
+                (!fileInfo.suffix().compare("osd", Qt::CaseInsensitive) ||
+                 !fileInfo.suffix().compare("txt", Qt::CaseInsensitive)))
+            {
+                OSDConfig::getInstance().appendRecentFile(fileName);
+                OSDConfig::getInstance().updateLastOpenedDir(fileInfo.absolutePath());
+                addNewEditPage(fileName);
+            }
         }
     }
 }
 
 void MainWindow::setupExtraUi()
 {
+    mTabWgt->setMovable(true);
+    mTabWgt->setTabsClosable(true);
+    mTabWgt->setElideMode(Qt::ElideLeft);
+
+    connect(mTabWgt, SIGNAL(currentChanged(int)),
+            this, SLOT(on_currentChanged(int)));
+    connect(mTabWgt, SIGNAL(tabCloseRequested(int)),
+            this, SLOT(on_tabCloseRequested(int)));
+
+    on_actionReset_triggered();
+
     mFontCobox->setSizeAdjustPolicy(
                 QComboBox::SizeAdjustPolicy::AdjustToMinimumContentsLength);
     ui->toolBarFont->insertWidget(ui->actionReset, new QLabel("  ", this));
@@ -155,8 +231,9 @@ void MainWindow::setupExtraUi()
     connect(mFontCobox, SIGNAL(currentFontFamilyChanged(QString)),
             this, SLOT(fontFamilyChanged(QString)));
     mFontCobox->setToolTip(tr("Select font."));
-
-    mTextEdit->setFontFamily(mFontCobox->currentText());
+    //mFontCobox->view()->setTextElideMode(Qt::ElideNone);
+    mFontCobox->view()->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    mFontCobox->view()->horizontalScrollBar()->setEnabled(true);
 
     ui->toolBarFont->insertWidget(ui->actionReset, new QLabel("  ", this));
     ui->toolBarFont->insertWidget(ui->actionReset, mFontSizeSpinbox);
@@ -192,19 +269,8 @@ void MainWindow::setupExtraUi()
             this, SLOT(backgroundColorChanged(QColor)));
     mBackColorCobox->setToolTip(tr("Set background color."));
 
-    connect(mTextEdit, SIGNAL(cursorPositionChanged()),
-            this, SLOT(textEditCursorPositionChanged()));
-
-    connect(mTextEdit, SIGNAL(textChanged()),
-            this, SLOT(textEditTextChanged()));
-
-    mTextEdit->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(mTextEdit, SIGNAL(customContextMenuRequested(QPoint)),
-            this, SLOT(textEditContentMenu(QPoint)));
-
     mFilePathEdit->setAlignment(Qt::AlignRight);
     mFilePathEdit->setReadOnly(true);
-    setFilePath(tr("New File"));
     mSaveStatusLabel->setFrameShape(QFrame::StyledPanel);
     mPositionLabel->setFrameShape(QFrame::StyledPanel);
     mWordCntLabel->setFrameShape(QFrame::StyledPanel);
@@ -227,6 +293,61 @@ void MainWindow::setupExtraUi()
 
     ui->statusBar->addPermanentWidget(mPositionLabel);
     ui->statusBar->addPermanentWidget(mWordCntLabel);
+
+    QPalette plt = mSearchBar.palette();
+    plt.setColor(QPalette::Background, Qt::white);
+    mSearchBar.setAutoFillBackground(true);
+    mSearchBar.setPalette(plt);
+
+    mRecentListWgt->setTextElideMode(Qt::ElideMiddle);
+    mRecentListWgt->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    connect(mRecentListWgt, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
+            this, SLOT(on_itemDoubleClicked(QListWidgetItem*)));
+    mRecentListWgt->hide();
+    this->installEventFilter(this);
+    mRecentListWgt->installEventFilter(this);
+}
+
+bool MainWindow::addNewEditPage(const QString &fileName)
+{
+    static int newFileIndex = 0;
+
+    QString fileFullName = fileName.isEmpty() ?
+                        QString::asprintf("NewFile_%d", newFileIndex++) :
+                        fileName;
+
+    for(int i = 0; i < mTabWgt->count(); ++i)
+    {
+        if(fileFullName == mTabWgt->tabText(i))
+        {
+            mTabWgt->setCurrentIndex(i);
+            return true;
+        }
+    }
+
+    mTextEdit = new OSDTextEdit(this);
+
+    // init edit
+    mTextEdit->setFontFamily(mFontCobox->currentText());
+
+    connect(mTextEdit, SIGNAL(cursorPositionChanged()),
+            this, SLOT(textEditCursorPositionChanged()));
+
+    connect(mTextEdit, SIGNAL(textChanged()),
+            this, SLOT(textEditTextChanged()));
+
+    if(!fileName.isEmpty())
+    {
+        if(!mTextEdit->openFromFile(fileFullName))
+            return false;
+    }
+    int tabId = mTabWgt->addTab(mTextEdit, fileFullName);
+    if(tabId >=0 )
+    {
+        mTabWgt->setCurrentIndex(tabId);
+    }
+
+    return true;
 }
 
 void MainWindow::fontFamilyChanged(const QString& family)
@@ -250,6 +371,69 @@ void MainWindow::backgroundColorChanged(const QColor &color)
 }
 
 void MainWindow::textEditCursorPositionChanged()
+{
+    OSDTextEdit *senderEdit = qobject_cast<OSDTextEdit*>(sender());
+    if(mTextEdit == senderEdit)
+    {
+        updateCharRelatedUI();
+    }
+}
+
+void MainWindow::textEditTextChanged()
+{
+    OSDTextEdit *senderEdit = qobject_cast<OSDTextEdit*>(sender());
+    if(mTextEdit == senderEdit)
+    {
+        // status changed
+        updateFileRelatedUI();
+    }
+}
+
+void MainWindow::openLastFile()
+{
+    if(OSDConfig::getInstance().getUnclosedFileList().isEmpty())
+    {
+        addNewEditPage("");
+        return;
+    }
+
+    auto itr = OSDConfig::getInstance().getUnclosedFileList().rbegin();
+
+    for(; itr != OSDConfig::getInstance().getUnclosedFileList().rend(); ++itr)
+    {
+        QFileInfo fileInfo(*itr);
+        if(fileInfo.exists())
+        {
+            addNewEditPage(*itr);
+        }
+    }
+}
+
+bool MainWindow::fileFormatMatch(const QString& fileName)
+{
+    QFileInfo fileInfo(fileName);
+    if(fileInfo.suffix() != "osd" && fileInfo.suffix() != "txt")
+    {
+        QMessageBox::warning(this, tr("Notice"),
+            tr("Wrong file format, file should be *.osd."));
+        return false;
+    }
+
+    return true;
+}
+
+void MainWindow::updateFileRelatedUI()
+{
+    // status changed
+    mWordCntLabel->setText(tr("Char: ")+QString::number(mTextEdit->document()->characterCount()-1));
+    mSaveStatusLabel->setText(mTextEdit->isFileModified() ? tr("Unsaved") : tr("Saved"));
+
+    setFilePath(mTabWgt->tabText(mTabWgt->currentIndex()));
+    ui->actionSmallImage->setChecked(mTextEdit->isSmallImageMode());
+    mSearchBar.setTextEdit(mTextEdit);
+}
+
+void MainWindow::updateCharRelatedUI()
 {
     QTextCursor cursor = mTextEdit->textCursor();
     auto charFormat = cursor.charFormat();
@@ -280,81 +464,161 @@ void MainWindow::textEditCursorPositionChanged()
                             tr("Col: ")+QString::number(cursor.columnNumber()+1));
 }
 
-void MainWindow::textEditTextChanged()
+QString MainWindow::closeEditPage(OSDTextEdit *edit, const int index)
 {
-    mFileModifiedFlag = true;
+    if(!edit || index < 0)
+        return "";
 
-    // status changed
-    mWordCntLabel->setText(tr("Word: ")+QString::number(mTextEdit->toPlainText().length()));
-    mSaveStatusLabel->setText(tr("Unsaved"));
-}
+    QString savedFileName;
 
-void MainWindow::openLastFile()
-{
-    // temp file
-    QFile tmpFile(tempFileName);
-    QFile configFile(configFileName);
-    if(tmpFile.exists())
+    // save file
+    if(edit->isFileModified())
     {
-        tmpFile.open(QIODevice::ReadOnly);
-        mTextEdit->setOSD(tmpFile.readAll());
-        tmpFile.close();
-        tmpFile.remove();
-        mFileModifiedFlag = true;
-        setFilePath(tr("New File"));
-        mSaveStatusLabel->setText(tr("Unsaved"));
-    }
-    else if(configFile.exists())
-    {
-        configFile.open(QIODevice::ReadOnly);
-        QString lastFile = configFile.readLine();
-        configFile.close();
-        configFile.remove();
-
-        if(lastFile.contains(lastFileConfig))
+        if(!edit->isFileExist())
         {
-            auto pos = lastFile.indexOf('=');
-            if(pos != -1)
+            auto btn = QMessageBox::warning(this, tr("Warning"),
+                       tr("File \"") + mTabWgt->tabText(index) +
+                       tr("\" does not exist, do you want to create it? "),
+                       QMessageBox::Ok | QMessageBox::Discard, QMessageBox::Ok);
+            if(QMessageBox::Ok == btn)
             {
-                QString lastFileName(lastFile.midRef(pos+1).toString());
-
-                if(!fileFormatMatch(lastFileName))
-                {
-                    return;
-                }
-
-                mCurFile.setFileName(lastFileName);
-                mCurFile.open(QIODevice::ReadOnly);
-                mTextEdit->setOSD(mCurFile.readAll());
-                mCurFile.close();
-                mFileModifiedFlag = false;
-                setFilePath(lastFileName);
-                mSaveStatusLabel->setText(tr("Saved"));
+                savedFileName = saveFile(edit, false);
             }
         }
+        else
+        {
+            savedFileName = saveFile(edit, false);
+        }
     }
-}
-
-bool MainWindow::fileFormatMatch(const QString& fileName)
-{
-    QFileInfo fileInfo(fileName);
-    if(fileInfo.suffix() != "osd")
+    else
     {
-        QMessageBox::warning(this, tr("Notice"),
-            tr("Wrong file format, file should be *.osd."));
-        return false;
+        savedFileName = edit->fileName();
     }
 
-    return true;
+    // remove tab
+    mTabWgt->removeTab(index);
+
+    return savedFileName;
 }
 
-void MainWindow::textEditContentMenu(const QPoint& point)
+void MainWindow::copyCharFormat()
 {
-    Q_UNUSED(point);
-    QMenu *menu = mTextEdit->createStandardContextMenu();
-    menu->addAction(ui->actionView);
-    menu->exec(QCursor::pos());
-    delete menu;
+    if(mTextEdit->textCursor().hasSelection())
+    {
+        // Use first character format
+        auto cursor = mTextEdit->textCursor();
+        cursor.setPosition(mTextEdit->textCursor().selectionStart() + 1);
+
+        while(cursor.charFormat().toImageFormat().isValid()
+              && cursor.position() != 0)
+        {
+            cursor.setPosition(cursor.position()-1);
+        }
+
+        mCopiedFont = cursor.charFormat().font();
+        if(cursor.position())
+        {
+            mCopiedTextClr = cursor.charFormat().foreground().color();
+            mCopiedBackClr = cursor.charFormat().background().color();
+        }
+        else
+        {
+            mCopiedTextClr = Qt::black;
+            mCopiedBackClr = Qt::white;
+        }
+    }
+    else
+    {
+        mCopiedFont = mTextEdit->currentFont();
+        mCopiedTextClr = mTextEdit->textColor();
+        mCopiedBackClr = mTextEdit->textBackgroundColor();
+    }
+}
+
+void MainWindow::pasteCharFormat()
+{
+    mTextEdit->setCurrentFont(mCopiedFont);
+    mTextEdit->setTextColor(mCopiedTextClr);
+    mTextEdit->setTextBackgroundColor(mCopiedBackClr);
+}
+
+QString MainWindow::saveFile(OSDTextEdit *edit, bool saveAs)
+{
+    QString savedFileName;
+
+    if(edit->isFileModified() || saveAs)
+    {
+        if(!edit->isFileExist() || saveAs)
+        {
+            QString curPath = OSDConfig::getInstance().getLastOpenedDir();
+            if(curPath.isEmpty())
+            {
+                curPath = QCoreApplication::applicationDirPath();
+            }
+            QString dlgTitle(tr("Save File"));
+            QString filter=tr("OSD File(*.osd)");
+            if(saveAs)
+            {
+                filter += tr(";;PDF File(*.pdf)");
+            }
+            QString selectedFilter;
+            QString fileName = QFileDialog::getSaveFileName(this,
+                                        dlgTitle, curPath,
+                                        filter, &selectedFilter);
+            if(!fileName.isEmpty())
+            {
+                auto suffix = QFileInfo(fileName).suffix();
+                if(suffix.isEmpty())
+                {
+                    suffix = "osd";
+                    fileName += ".osd";
+                }
+
+                if(!suffix.compare("pdf", Qt::CaseInsensitive))
+                {
+                    edit->printPDF(fileName);
+                }
+                else
+                {
+                    edit->saveToFile(fileName);
+                    OSDConfig::getInstance().appendRecentFile(fileName);
+                    savedFileName = fileName;
+                }
+            }
+        }
+        else
+        {
+            edit->saveToFile();
+            savedFileName = edit->fileName();
+        }
+    }
+
+    return savedFileName;
+}
+
+QString MainWindow::openFile()
+{
+    QString openedFile;
+    QString curPath = OSDConfig::getInstance().getLastOpenedDir();
+    if(curPath.isEmpty())
+    {
+        curPath = QCoreApplication::applicationDirPath();
+    }
+    QString dlgTitle(tr("Open File"));
+    QString filter=tr("OSD file(*.osd);;Text file(*.txt)");
+    QString fileName = QFileDialog::getOpenFileName(this,
+                                dlgTitle, curPath, filter);
+
+    QFileInfo fileInfo(fileName);
+    if(fileInfo.exists())
+    {
+        OSDConfig::getInstance().appendRecentFile(fileName);
+        OSDConfig::getInstance().updateLastOpenedDir(fileInfo.absolutePath());
+        addNewEditPage(fileName);
+        openedFile = openedFile;
+    }
+
+    return openedFile;
 }
 
 void MainWindow::setFilePath(const QString &path)
@@ -371,7 +635,6 @@ void MainWindow::setFilePath(const QString &path)
 void MainWindow::on_actionReset_triggered()
 {
     // Reset UI
-    mFontCobox->setCurrentFontFamily(mTextEdit->currentFont().defaultFamily());
     mFontSizeSpinbox->setCurrentValue(DefaultFontSize);
     mForeColorCobox->setCurrentColor(Qt::black);
     mBackColorCobox->setCurrentColor(Qt::white);
@@ -381,7 +644,11 @@ void MainWindow::on_actionReset_triggered()
     ui->actionDeleteline->setChecked(false);
 
     // Reset Font
-    mTextEdit->resetFontFormat();
+    if(mTextEdit)
+    {
+        mFontCobox->setCurrentFontFamily(mTextEdit->currentFont().defaultFamily());
+        mTextEdit->resetFontFormat();
+    }
 }
 
 void MainWindow::on_actionBold_triggered(bool checked)
@@ -406,124 +673,48 @@ void MainWindow::on_actionDeleteline_triggered(bool checked)
 
 void MainWindow::on_actionOpen_triggered()
 {
-    bool saveModifiedFlag = false;
-    if(mFileModifiedFlag)
-    {
-        auto result = QMessageBox::question(this, tr("Save File"),
-                 tr("File is modified, do you want to save?"),
-                 QMessageBox::Yes|QMessageBox::No,
-                 QMessageBox::Yes);
-        if(QMessageBox::Yes == result)
-        {
-            on_actionSave_triggered();
-            saveModifiedFlag = true;
-        }
-    }
-
-    if(!saveModifiedFlag)
-    {
-        QString curPath = QCoreApplication::applicationDirPath();
-        QString dlgTitle(tr("Open File"));
-        QString filter=tr("OSD file(*.osd)");
-        QString fileName = QFileDialog::getOpenFileName(this,
-                                    dlgTitle, curPath, filter);
-        if(!fileName.isEmpty())
-        {
-            QFileInfo fileInfo(fileName);
-            mCurFile.setFileName(fileName);
-            mCurFile.open(QIODevice::ReadOnly);
-
-            mTextEdit->setOSD(mCurFile.readAll());
-
-            mCurFile.close();
-            mFileModifiedFlag = false;
-
-            setFilePath(fileName);
-            mSaveStatusLabel->setText(tr("Saved"));
-        }
-    }
+    openFile();
 }
 
 void MainWindow::on_actionSave_triggered()
 {
-    if(mFileModifiedFlag)
+    auto fileName = saveFile(mTextEdit, false);
+
+    if(!fileName.isEmpty())
     {
-        if(!mCurFile.exists())
-        {
-            QString curPath = QCoreApplication::applicationDirPath();
-            QString dlgTitle(tr("Save File"));
-            QString filter=tr("OSD File(*.osd)");
-            QString selectedFilter;
-            QString fileName = QFileDialog::getSaveFileName(this,
-                                        dlgTitle, curPath,
-                                        filter, &selectedFilter);
-            if(!fileName.isEmpty())
-            {
-                QFileInfo fileInfo(fileName);
-                auto fileSuffix = fileInfo.suffix();
-                if(fileSuffix.isEmpty())
-                {
-                    fileSuffix = ".osd";
-                    fileName.append(fileSuffix);
-                }
-
-                QFile file(fileName);
-                file.open(QIODevice::WriteOnly);
-                file.write(mTextEdit->toOSD().toLocal8Bit());
-                file.close();
-
-                mCurFile.setFileName(fileName);
-            }
-        }
-        else
-        {
-            QFileInfo fileInfo(mCurFile.fileName());
-            mCurFile.open(QIODevice::WriteOnly);
-
-            mCurFile.write(mTextEdit->toOSD().toUtf8());
-
-            mCurFile.close();
-        }
-        mFileModifiedFlag = false;
-        mSaveStatusLabel->setText(tr("Saved"));
-        setFilePath(mCurFile.fileName());
+        mTabWgt->setTabText(mTabWgt->currentIndex(), fileName);
+        updateFileRelatedUI();
     }
 }
 
 void MainWindow::on_actionInsertImage_triggered()
 {
+    QString curPath = OSDConfig::getInstance().getLastOpenedImgDir();
+    if(curPath.isEmpty())
+    {
+        curPath = QCoreApplication::applicationDirPath();
+    }
+
     QString file = QFileDialog::getOpenFileName(this, tr("Select an image"),
-                ".", tr("all (*.*)\n"
+                curPath, tr("all (*.*)\n"
                 "JPEG (*.jpg *jpeg)\n"
                 "GIF (*.gif)\n"
                 "PNG (*.png)\n"));
+
     if(!file.isEmpty())
     {
         QUrl Uri ( file );
         QImage image = QImageReader ( file ).read();
         mTextEdit->insertImage(image);
+
+        QFileInfo fileInfo(file);
+        OSDConfig::getInstance().updateLastOpenedImgDir(fileInfo.absolutePath());
     }
 }
 
 void MainWindow::on_actionNew_triggered()
 {
-    if(mFileModifiedFlag)
-    {
-        auto result = QMessageBox::question(this, tr("Save File"),
-                 tr("File is modified, do you want to save?"),
-                 QMessageBox::Yes|QMessageBox::No,
-                 QMessageBox::Yes);
-        if(QMessageBox::Yes == result)
-        {
-            on_actionSave_triggered();
-        }
-    }
-
-    mCurFile.setFileName("");
-    mTextEdit->clear();
-    mFileModifiedFlag = false;
-    setFilePath(tr("New File"));
-    mSaveStatusLabel->setText(tr("Unsaved"));
+    addNewEditPage("");
 }
 
 void MainWindow::on_actionSmallImage_triggered(bool checked)
@@ -562,17 +753,22 @@ void MainWindow::on_actionView_triggered(bool checked)
     bool visible = !checked;
     ui->toolBarFile->setVisible(visible);
     ui->toolBarFont->setVisible(visible);
-    mTextEdit->setVerticalScrollBarPolicy(
-                visible ? Qt::ScrollBarAsNeeded:
-                          Qt::ScrollBarAlwaysOff);
-    mTextEdit->setHorizontalScrollBarPolicy(
-                visible ? Qt::ScrollBarAsNeeded:
-                          Qt::ScrollBarAlwaysOff);
+
+    for(int i=0; i<mTabWgt->count(); ++i)
+    {
+        auto edit = qobject_cast<OSDTextEdit*>(mTabWgt->widget(i));
+        edit->setVerticalScrollBarPolicy(
+                    visible ? Qt::ScrollBarAsNeeded:
+                              Qt::ScrollBarAlwaysOff);
+        edit->setHorizontalScrollBarPolicy(
+                    visible ? Qt::ScrollBarAsNeeded:
+                              Qt::ScrollBarAlwaysOff);
+        edit->setReadOnly(checked);
+    }
 
     ui->statusBar->setMaximumHeight(visible ? defaultStatusH : 18);
     ui->statusBar->adjustSize();
 
-    mTextEdit->setReadOnly(checked);
 }
 
 void MainWindow::on_actionTransIncrease_triggered()
@@ -593,7 +789,124 @@ void MainWindow::on_actionTransDecrease_triggered()
 
 void MainWindow::on_actionAbout_triggered()
 {
-
     mAbout->setModal(true);
     mAbout->show();
+}
+
+void MainWindow::on_currentChanged(int index)
+{
+    auto widget = mTabWgt->widget(index);
+    if(widget)
+    {
+        mTextEdit = qobject_cast<OSDTextEdit*>(widget);
+        updateFileRelatedUI();
+        updateCharRelatedUI();
+    }
+}
+
+void MainWindow::on_tabCloseRequested(int index)
+{
+    auto edit = qobject_cast<OSDTextEdit *>(mTabWgt->widget(index));
+    closeEditPage(edit, index);
+
+    if(mTabWgt->count() == 0)
+    {
+        this->close();
+    }
+}
+
+void MainWindow::on_actionOpenRecent_triggered()
+{
+    if(mRecentListWgt->isVisible())
+    {
+        mRecentListWgt->hide();
+        return;
+    }
+
+    auto actWgt = ui->toolBarFile->widgetForAction(ui->actionOpenRecent);
+    if(actWgt)
+    {
+        const int len = 150;
+        mRecentListWgt->clear();
+        mRecentListWgt->addItems(OSDConfig::getInstance().getRecentFileList());
+
+        for(int i=0; i<mRecentListWgt->count(); ++i)
+        {
+            mRecentListWgt->item(i)->setToolTip(mRecentListWgt->item(i)->text());
+        }
+
+        mRecentListWgt->raise();
+        int tempX = ui->toolBarFile->orientation() == Qt::Vertical ?
+                    ui->toolBarFile->x() + actWgt->x() + len >= width() ?
+                        ui->toolBarFile->x() - len :
+                        ui->toolBarFile->x() + ui->toolBarFile->width() :
+                    ui->toolBarFile->x() + actWgt->x();
+
+        int tempY = ui->toolBarFile->orientation() == Qt::Vertical ?
+                    (ui->toolBarFile->y() + actWgt->y() + len >= height() ?
+                        height() - len :
+                        ui->toolBarFile->y() + actWgt->y()):
+                    (ui->toolBarFile->y() + actWgt->y() + len >= height() ?
+                        ui->toolBarFile->y() - len :
+                        actWgt->y() + actWgt->height() + ui->toolBarFile->y());
+
+        mRecentListWgt->setGeometry(tempX, tempY, len, len);
+        mRecentListWgt->show();
+        mRecentListWgt->setFocus();
+    }
+}
+
+void MainWindow::on_itemDoubleClicked(QListWidgetItem *item)
+{
+    mRecentListWgt->hide();
+
+    QString fileName = item->text();
+    QFileInfo fileInfo(fileName);
+    if(fileInfo.exists())
+    {
+        OSDConfig::getInstance().appendRecentFile(fileName);
+        OSDConfig::getInstance().updateLastOpenedDir(fileInfo.absolutePath());
+        addNewEditPage(fileName);
+    }
+    else
+    {
+        mRecentListWgt->removeItemWidget(item);
+        OSDConfig::getInstance().removeRecentFile(fileName);
+    }
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == mRecentListWgt)
+    {
+        if(event->type() == QEvent::Leave ||
+           event->type() == QEvent::FocusOut)
+        {
+            mRecentListWgt->hide();
+            return true;
+        }
+    }
+    else
+    {
+        if(event->type() == QEvent::NonClientAreaMouseButtonPress)
+        {
+            if(mRecentListWgt->isVisible())
+            {
+                mRecentListWgt->hide();
+                return true;
+            }
+        }
+    }
+
+    return QWidget::eventFilter(watched,event);
+}
+
+void MainWindow::on_actionSaveAs_triggered()
+{
+    saveFile(mTextEdit, true);
+}
+
+void MainWindow::on_actionShortcut_triggered()
+{
+    mShortcutDlg->show();
 }

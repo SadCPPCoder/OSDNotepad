@@ -4,7 +4,9 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui \
+            printsupport
+RC_ICONS = res/logo/logo.ico
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -30,7 +32,10 @@ SOURCES += \
     osdfontcombobox.cpp \
     osdspinbox.cpp \
     osdcolorcombobox.cpp \
-    about.cpp
+    about.cpp \
+    searchbar.cpp \
+    osdconfig.cpp \
+    osdshortcutdialog.cpp
 
 HEADERS += \
         mainwindow.h \
@@ -38,11 +43,17 @@ HEADERS += \
     osdfontcombobox.h \
     osdspinbox.h \
     osdcolorcombobox.h \
-    about.h
+    about.h \
+    globalinfo.h \
+    searchbar.h \
+    osdconfig.h \
+    osdshortcutdialog.h
 
 FORMS += \
         mainwindow.ui \
-    about.ui
+    about.ui \
+    searchbar.ui \
+    osdshortcutdialog.ui
 
 RESOURCES += \
     resources.qrc

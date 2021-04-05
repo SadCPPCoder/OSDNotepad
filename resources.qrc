@@ -38,7 +38,16 @@
         <file>res/logo/logo.png</file>
         <file>res/alipay.png</file>
         <file>res/wechat.png</file>
-        <file>lang_Chinses.qm</file>
         <file>lang_English.qm</file>
+        <file>res/icon/search.png</file>
+        <file>res/icon/case.png</file>
+        <file>res/icon/bottom.png</file>
+        <file>res/icon/reg.png</file>
+        <file>res/icon/open_recent_file.png</file>
+        <file>res/icon/save_file_as.png</file>
+        <file>qt_zh_CN.qm</file>
+        <file>qtbase_zh_CN.qm</file>
+        <file>res/icon/shortcut.png</file>
+        <file>lang_Chinses.qm</file>
     </qresource>
 </RCC>
