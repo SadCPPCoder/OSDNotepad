@@ -177,7 +177,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     else if(keySeq.matches(OSDConfig::getInstance()
                         .getKeySequence(SK_FormatPaste)))
     {
-        pasteCharFormat();
+         pasteCharFormat();
     }
 }
 
@@ -500,7 +500,7 @@ QString MainWindow::closeEditPage(OSDTextEdit *edit, const int index)
 
     return savedFileName;
 }
-
+#include <QDebug>
 void MainWindow::copyCharFormat()
 {
     if(mTextEdit->textCursor().hasSelection())
@@ -509,22 +509,22 @@ void MainWindow::copyCharFormat()
         auto cursor = mTextEdit->textCursor();
         cursor.setPosition(mTextEdit->textCursor().selectionStart() + 1);
 
-        while(cursor.charFormat().toImageFormat().isValid()
-              && cursor.position() != 0)
+        mCopiedFont = mTextEdit->document()->defaultFont();
+        mCopiedTextClr = Qt::black;
+        mCopiedBackClr = Qt::white;
+        if(!cursor.charFormat().toImageFormat().isValid())
         {
-            cursor.setPosition(cursor.position()-1);
-        }
+            mCopiedFont = cursor.charFormat().font();
+            auto charFormat = cursor.charFormat();
+            if(charFormat.hasProperty(QTextFormat::ForegroundBrush))
+            {
+                mCopiedTextClr = charFormat.foreground().color();
+            }
 
-        mCopiedFont = cursor.charFormat().font();
-        if(cursor.position())
-        {
-            mCopiedTextClr = cursor.charFormat().foreground().color();
-            mCopiedBackClr = cursor.charFormat().background().color();
-        }
-        else
-        {
-            mCopiedTextClr = Qt::black;
-            mCopiedBackClr = Qt::white;
+            if(charFormat.hasProperty(QTextFormat::BackgroundBrush))
+            {
+                mCopiedBackClr = charFormat.background().color();
+            }
         }
     }
     else
@@ -559,6 +559,7 @@ QString MainWindow::saveFile(OSDTextEdit *edit, bool saveAs)
             QString filter=tr("OSD File(*.osd)");
             if(saveAs)
             {
+                dlgTitle = tr("Save As");
                 filter += tr(";;PDF File(*.pdf)");
             }
             QString selectedFilter;

@@ -270,7 +270,6 @@ void OSDTextEdit::resetFontFormat()
     font.setUnderline(false);
     font.setStrikeOut(false);
     font.setPointSize(DEFAULT_FONT_POINT_SIZE);
-    font.setFamily(font.defaultFamily());
     setCurrentFont(font);
     setTextColor(Qt::black);
     setTextBackgroundColor(Qt::white);

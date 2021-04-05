@@ -13,6 +13,7 @@
 
 #include <QKeySequence>
 #include <QList>
+#include <QLockFile>
 #include <QMap>
 #include <QPair>
 #include <QString>
@@ -70,6 +71,7 @@ private:
     QString mLastOpenedDir;
     QString mLastOpenedImgDir;
     OSDKeySeqMap mCustomKeys;
+    QLockFile mConfigLockFile;
 
     OSDConfig(const QString &fileName, QObject *parent = NULL);
     void updateConfigItem(const QString& key, const QString& value);

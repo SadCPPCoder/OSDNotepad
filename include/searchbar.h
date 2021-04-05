@@ -26,6 +26,7 @@ public:
     ~SearchBar();
     void setTextEdit(QTextEdit *edit);
     void setVisible(bool visible);
+    void setFocus();
 
 private:
     bool tryFind(QString str);

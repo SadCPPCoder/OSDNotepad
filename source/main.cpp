@@ -12,7 +12,6 @@
 #include "mainwindow.h"
 #include "osdconfig.h"
 
-#include <QDebug>
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -23,14 +22,14 @@ int main(int argc, char *argv[])
     QTranslator translator;
     QLocale locale;
     QString lang = locale.language() == QLocale::Chinese ?
-                ":/lang_Chinses.qm" : ":/lang_English.qm";
+                ":/language/lang_Chinses.qm" : ":/language/lang_English.qm";
     translator.load(lang);
     QTranslator qtLang;
     QTranslator qtbaseLang;
     if(locale.language() == QLocale::Chinese)
     {
-        qtLang.load(":/qt_zh_CN.qm");
-        qtbaseLang.load(":/qtbase_zh_CN.qm");
+        qtLang.load(":/language/qt_zh_CN.qm");
+        qtbaseLang.load(":/language/qtbase_zh_CN.qm");
         a.installTranslator(&qtLang);
         a.installTranslator(&qtbaseLang);
     }

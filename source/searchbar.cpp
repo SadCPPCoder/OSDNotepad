@@ -45,6 +45,11 @@ void SearchBar::setVisible(bool visible)
     QWidget::setVisible(visible);
 }
 
+void SearchBar::setFocus()
+{
+    ui->lineEdit->setFocus();
+}
+
 bool SearchBar::tryFind(QString str)
 {
     if(!mEdit)

@@ -24,6 +24,8 @@ const QList<QString> OSDConfig::msConfigStrList =
 OSDConfig::OSDConfig(const QString &fileName, QObject *parent)
     : QObject(parent)
     , mConfigFileName(fileName)
+    , mConfigLockFile(fileName + ".lock")
+
 {
     // Set Shortcut Keys Default Value
     mCustomKeys.insert(SK_FontSizeIncrease,
@@ -56,7 +58,8 @@ OSDConfig::OSDConfig(const QString &fileName, QObject *parent)
 
     QMap<QString, QString> cfgMap;
     QFile cfgFile(mConfigFileName);
-    if(!cfgFile.exists())
+    mConfigLockFile.tryLock();
+    if(!cfgFile.exists() || !mConfigLockFile.isLocked())
     {
         return;
     }
@@ -171,6 +174,11 @@ void OSDConfig::removeRecentFile(const QString &file)
 
 void OSDConfig::updateConfigFile()
 {
+    if(!mConfigLockFile.isLocked())
+    {
+        return;
+    }
+
     QString cfgContent;
     QString str;
     int count = 0;
