@@ -500,7 +500,7 @@ QString MainWindow::closeEditPage(OSDTextEdit *edit, const int index)
 
     return savedFileName;
 }
-#include <QDebug>
+
 void MainWindow::copyCharFormat()
 {
     if(mTextEdit->textCursor().hasSelection())
