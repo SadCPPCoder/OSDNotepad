@@ -49,12 +49,15 @@ MainWindow::MainWindow(QString file, QWidget *parent) :
     mSaveStatusLabel(new QLabel(tr("Unsaved"), this)),
     mAbout(new About(this)),
     mTabWgt(new QTabWidget(this)),
-    mRecentListWgt(new QListWidget(this)),
+    mOpenRecentCombobox(new BZCombobox(this)),
+    mRecentListWgt(nullptr),
     mMousePoint(0, 0),
     mMousePressed(false),
     mSearchBar(this),
-    mShortcutDlg(new OSDShortcutDialog(this))
+    mShortcutDlg(new OSDShortcutDialog(this)),
+    mInsertListBtn(new QPushButton(this))
 {
+    mRecentListWgt = mOpenRecentCombobox->listWgt();
     ui->setupUi(this);
     mSearchBar.hide();
     mAbout->setModal(true);
@@ -231,9 +234,6 @@ void MainWindow::setupExtraUi()
     connect(mFontCobox, SIGNAL(currentFontFamilyChanged(QString)),
             this, SLOT(fontFamilyChanged(QString)));
     mFontCobox->setToolTip(tr("Select font."));
-    //mFontCobox->view()->setTextElideMode(Qt::ElideNone);
-    mFontCobox->view()->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    mFontCobox->view()->horizontalScrollBar()->setEnabled(true);
 
     ui->toolBarFont->insertWidget(ui->actionReset, new QLabel("  ", this));
     ui->toolBarFont->insertWidget(ui->actionReset, mFontSizeSpinbox);
@@ -299,13 +299,20 @@ void MainWindow::setupExtraUi()
     mSearchBar.setAutoFillBackground(true);
     mSearchBar.setPalette(plt);
 
-    mRecentListWgt->setTextElideMode(Qt::ElideMiddle);
-    mRecentListWgt->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->toolBarFile->insertWidget(ui->actionSave, mOpenRecentCombobox);
+    mOpenRecentCombobox->setFixedWidth(ui->toolBarFile->height());
+    mOpenRecentCombobox->setIcon(QIcon(":/res/icon/open_recent_file.png"));
+    connect(mOpenRecentCombobox, SIGNAL(updateListContent()),
+            this, SLOT(on_updateListContent()));
     connect(mRecentListWgt, SIGNAL(itemDoubleClicked(QListWidgetItem*)),
-            this, SLOT(on_itemDoubleClicked(QListWidgetItem*)));
-    mRecentListWgt->hide();
-    this->installEventFilter(this);
-    mRecentListWgt->installEventFilter(this);
+            this, SLOT(on_recentFileComboboxListItemDoubleClicked(QListWidgetItem*)));
+
+    ui->toolBarFile->insertWidget(ui->actionTransIncrease, mInsertListBtn);
+    mInsertListBtn->setFixedWidth(ui->toolBarFile->height());
+    mInsertListBtn->setIcon(QIcon(":/res/icon/list.png"));
+    mInsertListBtn->setFlat(true);
+    connect(mInsertListBtn, SIGNAL(clicked()),
+            this, SLOT(on_insertListBtnClicked()));
 }
 
 bool MainWindow::addNewEditPage(const QString &fileName)
@@ -816,48 +823,30 @@ void MainWindow::on_tabCloseRequested(int index)
     }
 }
 
-void MainWindow::on_actionOpenRecent_triggered()
+void MainWindow::on_updateListContent()
 {
-    if(mRecentListWgt->isVisible())
+    mRecentListWgt->clear();
+    mRecentListWgt->addItems(OSDConfig::getInstance().getRecentFileList());
+
+    for(int i=0; i<mRecentListWgt->count(); ++i)
     {
-        mRecentListWgt->hide();
-        return;
+        mRecentListWgt->item(i)->setToolTip(mRecentListWgt->item(i)->text());
     }
 
-    auto actWgt = ui->toolBarFile->widgetForAction(ui->actionOpenRecent);
-    if(actWgt)
+    int max_w = 0;
+    for(int i=0; i<mRecentListWgt->count(); ++i)
     {
-        const int len = 150;
-        mRecentListWgt->clear();
-        mRecentListWgt->addItems(OSDConfig::getInstance().getRecentFileList());
-
-        for(int i=0; i<mRecentListWgt->count(); ++i)
-        {
-            mRecentListWgt->item(i)->setToolTip(mRecentListWgt->item(i)->text());
-        }
-
-        mRecentListWgt->raise();
-        int tempX = ui->toolBarFile->orientation() == Qt::Vertical ?
-                    ui->toolBarFile->x() + actWgt->x() + len >= width() ?
-                        ui->toolBarFile->x() - len :
-                        ui->toolBarFile->x() + ui->toolBarFile->width() :
-                    ui->toolBarFile->x() + actWgt->x();
-
-        int tempY = ui->toolBarFile->orientation() == Qt::Vertical ?
-                    (ui->toolBarFile->y() + actWgt->y() + len >= height() ?
-                        height() - len :
-                        ui->toolBarFile->y() + actWgt->y()):
-                    (ui->toolBarFile->y() + actWgt->y() + len >= height() ?
-                        ui->toolBarFile->y() - len :
-                        actWgt->y() + actWgt->height() + ui->toolBarFile->y());
-
-        mRecentListWgt->setGeometry(tempX, tempY, len, len);
-        mRecentListWgt->show();
-        mRecentListWgt->setFocus();
+        if(mRecentListWgt->visualItemRect(mRecentListWgt->item(i)).width() > max_w)
+            max_w = mRecentListWgt->visualItemRect(mRecentListWgt->item(i)).width();
     }
+
+    max_w += mRecentListWgt->verticalScrollBar()->width() + 5;
+    if(max_w > 250)
+        max_w = 250;
+    mRecentListWgt->setFixedWidth(max_w);
 }
 
-void MainWindow::on_itemDoubleClicked(QListWidgetItem *item)
+void MainWindow::on_recentFileComboboxListItemDoubleClicked(QListWidgetItem *item)
 {
     mRecentListWgt->hide();
 
@@ -910,4 +899,14 @@ void MainWindow::on_actionSaveAs_triggered()
 void MainWindow::on_actionShortcut_triggered()
 {
     mShortcutDlg->show();
+}
+
+void MainWindow::on_actionTable_triggered()
+{
+    mTextEdit->createTbl();
+}
+
+void MainWindow::on_insertListBtnClicked()
+{
+    mTextEdit->createList(QTextListFormat::ListDecimal);
 }

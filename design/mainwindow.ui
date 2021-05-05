@@ -25,7 +25,7 @@
    <string>OSD Notepad</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset resource="../resources.qrc">
     <normaloff>:/res/logo/logo.png</normaloff>:/res/logo/logo.png</iconset>
   </property>
   <property name="iconSize">
@@ -77,10 +77,10 @@
    </attribute>
    <addaction name="actionNew"/>
    <addaction name="actionOpen"/>
-   <addaction name="actionOpenRecent"/>
    <addaction name="actionSave"/>
    <addaction name="actionSaveAs"/>
    <addaction name="actionInsertImage"/>
+   <addaction name="actionTable"/>
    <addaction name="actionTransIncrease"/>
    <addaction name="actionTransDecrease"/>
   </widget>
@@ -145,7 +145,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/bold.png</normaloff>:/res/icon/bold.png</iconset>
    </property>
    <property name="text">
@@ -169,7 +169,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/italic.png</normaloff>:/res/icon/italic.png</iconset>
    </property>
    <property name="text">
@@ -192,7 +192,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/format-underline.png</normaloff>:/res/icon/format-underline.png</iconset>
    </property>
    <property name="text">
@@ -215,7 +215,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/format-strike.png</normaloff>:/res/icon/format-strike.png</iconset>
    </property>
    <property name="text">
@@ -235,7 +235,7 @@
   </action>
   <action name="actionReset">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/reset.png</normaloff>:/res/icon/reset.png</iconset>
    </property>
    <property name="text">
@@ -250,7 +250,7 @@
   </action>
   <action name="actionInsertImage">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/insert_img.png</normaloff>:/res/icon/insert_img.png</iconset>
    </property>
    <property name="text">
@@ -262,7 +262,7 @@
   </action>
   <action name="actionOpen">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/open_file.png</normaloff>:/res/icon/open_file.png</iconset>
    </property>
    <property name="text">
@@ -277,7 +277,7 @@
   </action>
   <action name="actionSave">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/save_file.png</normaloff>:/res/icon/save_file.png</iconset>
    </property>
    <property name="text">
@@ -292,7 +292,7 @@
   </action>
   <action name="actionNew">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/new_file.png</normaloff>:/res/icon/new_file.png</iconset>
    </property>
    <property name="text">
@@ -310,7 +310,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/view_off.png</normaloff>
      <normalon>:/res/icon/view_on.png</normalon>:/res/icon/view_off.png</iconset>
    </property>
@@ -329,7 +329,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/alway_on_top.png</normaloff>:/res/icon/alway_on_top.png</iconset>
    </property>
    <property name="text">
@@ -344,7 +344,7 @@
   </action>
   <action name="actionTransIncrease">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/opacity_increase.png</normaloff>:/res/icon/opacity_increase.png</iconset>
    </property>
    <property name="text">
@@ -356,7 +356,7 @@
   </action>
   <action name="actionTransDecrease">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/opacity_decrease.png</normaloff>:/res/icon/opacity_decrease.png</iconset>
    </property>
    <property name="text">
@@ -371,7 +371,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/img_origin.png</normaloff>
      <normalon>:/res/icon/img_small.png</normalon>:/res/icon/img_origin.png</iconset>
    </property>
@@ -384,7 +384,7 @@
   </action>
   <action name="actionAbout">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/about.png</normaloff>:/res/icon/about.png</iconset>
    </property>
    <property name="text">
@@ -394,21 +394,9 @@
     <string>About the application.</string>
    </property>
   </action>
-  <action name="actionOpenRecent">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/res/icon/open_recent_file.png</normaloff>:/res/icon/open_recent_file.png</iconset>
-   </property>
-   <property name="text">
-    <string>OpenRecent</string>
-   </property>
-   <property name="toolTip">
-    <string>Open recent files.</string>
-   </property>
-  </action>
   <action name="actionSaveAs">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/save_file_as.png</normaloff>:/res/icon/save_file_as.png</iconset>
    </property>
    <property name="text">
@@ -423,17 +411,26 @@
   </action>
   <action name="actionShortcut">
    <property name="icon">
-    <iconset resource="resources.qrc">
+    <iconset resource="../resources.qrc">
      <normaloff>:/res/icon/shortcut.png</normaloff>:/res/icon/shortcut.png</iconset>
    </property>
    <property name="text">
     <string>Shortcut</string>
    </property>
   </action>
+  <action name="actionTable">
+   <property name="icon">
+    <iconset resource="../resources.qrc">
+     <normaloff>:/res/icon/table.png</normaloff>:/res/icon/table.png</iconset>
+   </property>
+   <property name="text">
+    <string>Table</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>
-  <include location="resources.qrc"/>
+  <include location="../resources.qrc"/>
  </resources>
  <connections/>
 </ui>

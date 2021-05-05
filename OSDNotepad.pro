@@ -35,7 +35,8 @@ SOURCES += \
     source/osdshortcutdialog.cpp \
     source/osdspinbox.cpp \
     source/osdtextedit.cpp \
-    source/searchbar.cpp
+    source/searchbar.cpp \
+    source/bzcombobox.cpp
 
 INCLUDEPATH += \
     include
@@ -50,13 +51,15 @@ HEADERS += \
     include/osdshortcutdialog.h \
     include/osdspinbox.h \
     include/osdtextedit.h \
-    include/searchbar.h
+    include/searchbar.h \
+    include/bzcombobox.h
 
 FORMS += \
     design/about.ui \
     design/mainwindow.ui \
     design/osdshortcutdialog.ui \
-    design/searchbar.ui
+    design/searchbar.ui \
+    design/bzcombobox.ui
 
 RESOURCES += \
     resources.qrc

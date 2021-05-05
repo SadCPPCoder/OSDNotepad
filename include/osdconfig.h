@@ -37,6 +37,10 @@
 #define SK_TextRShift "TextRShift"
 #define SK_TextLShift "TextLShift"
 #define SK_SmartIndent "SmartIndent"
+#define SK_HAlignment "HAlignment"
+#define SK_VAlignment "VAlignment"
+#define SK_TableRShift "TableRShift"
+#define SK_TableLShift "TableLShift"
 
 class OSDConfig : public QObject
 {

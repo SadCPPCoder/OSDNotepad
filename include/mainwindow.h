@@ -16,13 +16,14 @@
 #include <QLabel>
 #include <QTabWidget>
 #include <QListWidget>
-#include "osdtextedit.h"
+#include "about.h"
+#include "bzcombobox.h"
 #include "osdcolorcombobox.h"
 #include "osdfontcombobox.h"
 #include "osdspinbox.h"
-#include "about.h"
-#include "searchbar.h"
 #include "osdshortcutdialog.h"
+#include "osdtextedit.h"
+#include "searchbar.h"
 
 namespace Ui {
 class MainWindow;
@@ -83,11 +84,13 @@ private slots:
     void on_actionAbout_triggered();
     void on_currentChanged(int index);
     void on_tabCloseRequested(int index);
-    void on_actionOpenRecent_triggered();
-    void on_itemDoubleClicked(QListWidgetItem *item);
+    void on_updateListContent();
+    void on_recentFileComboboxListItemDoubleClicked(QListWidgetItem *item);
     bool eventFilter(QObject *watched, QEvent *event);
     void on_actionSaveAs_triggered();
     void on_actionShortcut_triggered();
+    void on_actionTable_triggered();
+    void on_insertListBtnClicked();
 
 private:
     Ui::MainWindow *ui;
@@ -104,6 +107,7 @@ private:
     QLabel *mSaveStatusLabel;
     About *mAbout;
     QTabWidget *mTabWgt;
+    BZCombobox *mOpenRecentCombobox;
     QListWidget *mRecentListWgt;
     QPoint mMousePoint;
     bool mMousePressed;
@@ -112,6 +116,7 @@ private:
     QColor mCopiedTextClr;
     QColor mCopiedBackClr;
     OSDShortcutDialog *mShortcutDlg;
+    QPushButton *mInsertListBtn;
 };
 
 #endif // MAINWINDOW_H

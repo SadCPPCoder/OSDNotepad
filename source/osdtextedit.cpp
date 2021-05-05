@@ -26,6 +26,8 @@
 #include <QTextBlock>
 #include <QTextDocumentFragment>
 #include <QTextFrame>
+#include <QTextList>
+#include <QTextTable>
 
 static const QString fileName("test.osd");
 static const QString infoDataStart("\n<!--Info\n");
@@ -430,6 +432,25 @@ bool OSDTextEdit::printPDF(const QString fileName)
     return true;
 }
 
+void OSDTextEdit::createTbl()
+{
+    if(textCursor().currentList())
+    {
+        textCursor().insertText(" ");
+    }
+
+    QTextTableFormat format;
+    format.setCellPadding(6);
+    format.setCellSpacing(0);
+    format.setBorderBrush(QColor(0x4F, 0x4F, 0x4F));
+    textCursor().insertTable(2, 2, format);
+}
+
+void OSDTextEdit::createList(const QTextListFormat::Style &style)
+{
+    textCursor().insertList(style);
+}
+
 void OSDTextEdit::paintEvent(QPaintEvent *event)
 {
     QTextEdit::paintEvent(event);
@@ -460,17 +481,24 @@ void OSDTextEdit::keyPressEvent(QKeyEvent *event)
         return;
     }
     else if(keySeq.matches(OSDConfig::getInstance()
-                      .getKeySequence(SK_TextRShift)) &&
-            textCursor().hasSelection())
+                      .getKeySequence(SK_TextRShift)))
     {
-        tabOperation(true);
-        return;
+        if(jumpTabCell(true))
+            return;
+        else if(listTabOperation(true))
+            return;
+        else if(tabOperation(true))
+            return;
     }
     else if(keySeq.matches(OSDConfig::getInstance()
                       .getKeySequence(SK_TextLShift)))
     {
-        tabOperation(false);
-        return;
+        if(jumpTabCell(false))
+            return;
+        else if(listTabOperation(false))
+            return;
+        else if(tabOperation(false))
+            return;
     }
     else if(keySeq.matches(OSDConfig::getInstance()
                       .getKeySequence(SK_SmartIndent)))
@@ -485,6 +513,30 @@ void OSDTextEdit::keyPressEvent(QKeyEvent *event)
         {
             indentStr.clear();
         }
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                           .getKeySequence(SK_HAlignment)))
+    {
+        if(setTabCellHAlignment())
+            return;
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                           .getKeySequence(SK_VAlignment)))
+    {
+        if(setTabCellVAlignment())
+            return;
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                           .getKeySequence(SK_TableRShift)))
+    {
+        if(tableIndentOperation(true))
+            return;
+    }
+    else if(keySeq.matches(OSDConfig::getInstance()
+                           .getKeySequence(SK_TableLShift)))
+    {
+        if(tableIndentOperation(false))
+            return;
     }
 
     QTextEdit::keyPressEvent(event);
@@ -502,8 +554,18 @@ void OSDTextEdit::resizeEvent(QResizeEvent *e)
     updateBottomBlankArea();
 }
 
-void OSDTextEdit::tabOperation(bool isAdd)
+bool OSDTextEdit::tabOperation(bool isAdd)
 {
+    if(isAdd && !textCursor().hasSelection())
+    {
+        return false;
+    }
+    else if(!isAdd &&
+            !textCursor().hasSelection())
+    {
+        return false;
+    }
+
     QTextCursor cursor(document());
     cursor.setPosition(textCursor().selectionStart());
     auto block = cursor.block();
@@ -517,6 +579,7 @@ void OSDTextEdit::tabOperation(bool isAdd)
         curs.movePosition(QTextCursor::StartOfBlock);
         if(isAdd)
         {
+            // 4 spaces
             curs.insertText("\t");
         }
         else
@@ -530,6 +593,8 @@ void OSDTextEdit::tabOperation(bool isAdd)
         }
         block = block.next();
     }
+
+    return true;
 }
 
 void OSDTextEdit::updateBottomBlankArea()
@@ -542,6 +607,151 @@ void OSDTextEdit::updateBottomBlankArea()
         setFlag(UpdateBottomBlankAreaFlag, true);
         document()->rootFrame()->setFrameFormat(frameFmt);
     }
+}
+
+bool OSDTextEdit::jumpTabCell(bool isToNext)
+{
+    auto cursor = textCursor();
+    auto table = cursor.currentTable();
+
+    if(!table)
+    {
+        return false;
+    }
+
+    auto curCell = table->cellAt(cursor);
+    int row = curCell.row();
+    int col = curCell.column();
+    int maxRowId = table->rows() - 1;
+    int maxColId = table->columns() - 1;
+
+    if(isToNext && (row < maxRowId || col < maxColId))
+    {
+        if(col < maxColId)
+            setTextCursor(table->cellAt(row, col + 1).firstCursorPosition());
+        else
+            setTextCursor(table->cellAt(row + 1, 0).firstCursorPosition());
+    }
+    else if(!isToNext && (row > 0 || col > 0))
+    {
+        if(col > 0)
+            setTextCursor(table->cellAt(row, col - 1).firstCursorPosition());
+        else
+            setTextCursor(table->cellAt(row - 1, maxColId).firstCursorPosition());
+    }
+
+    return true;
+}
+
+bool OSDTextEdit::setTabCellHAlignment()
+{
+    auto cursor = textCursor();
+    auto table = cursor.currentTable();
+
+    if(!table)
+    {
+        return false;
+    }
+
+    auto blockFmt = cursor.blockFormat();
+    auto align = blockFmt.alignment();
+
+    if(align & Qt::AlignLeft)
+        align = Qt::AlignHCenter;
+    else if(align & Qt::AlignHCenter)
+        align = Qt::AlignRight;
+    else if(align & Qt::AlignRight)
+        align = Qt::AlignLeft;
+    else
+        align = Qt::AlignLeft;
+
+    blockFmt.setAlignment(align);
+    cursor.setBlockFormat(blockFmt);
+
+    return true;
+}
+
+bool OSDTextEdit::setTabCellVAlignment()
+{
+    auto cursor = textCursor();
+    auto table = cursor.currentTable();
+
+    if(!table)
+    {
+        return false;
+    }
+
+    auto cell = table->cellAt(cursor);
+    auto format = cell.format();
+    auto align = format.verticalAlignment();
+
+    if(align == QTextCharFormat::AlignTop)
+        align = QTextCharFormat::AlignMiddle;
+    else if(align == QTextCharFormat::AlignMiddle)
+        align = QTextCharFormat::AlignBottom;
+    else if(align == QTextCharFormat::AlignBottom)
+        align = QTextCharFormat::AlignTop;
+    else
+        align = QTextCharFormat::AlignTop;
+    format.setVerticalAlignment(align);
+    cell.setFormat(format);
+
+    // Add this call to make sure cell(0, 0) can
+    // change the alignment immediately
+    cursor.setBlockFormat(cursor.blockFormat());
+
+    return true;
+}
+
+bool OSDTextEdit::listTabOperation(bool isToRight)
+{
+    auto list = textCursor().currentList();
+    if(!list)
+    {
+        return false;
+    }
+
+    auto format = list->format();
+    if(isToRight)
+    {
+        format.setIndent(format.indent()+1);
+        list->setFormat(format);
+    }
+    else
+    {
+        if(format.indent() > 1)
+            format.setIndent(format.indent()-1);
+        list->setFormat(format);
+    }
+
+    return true;
+}
+
+bool OSDTextEdit::tableIndentOperation(bool isToRight)
+{
+    auto cursor = textCursor();
+    auto table = cursor.currentTable();
+
+    if(!table)
+    {
+        return false;
+    }
+
+    auto fmt = table->format();
+    bool changed = true;
+    if(isToRight)
+        fmt.setLeftMargin(fmt.leftMargin() + document()->indentWidth());
+    else if(fmt.leftMargin() >= document()->indentWidth())
+        fmt.setLeftMargin(fmt.leftMargin() - document()->indentWidth());
+    else if(fmt.leftMargin() < document()->indentWidth())
+        fmt.setLeftMargin(0);
+    else
+        changed = false;
+
+    if(changed)
+        table->setFormat(fmt);
+
+    return true;
 }
 
 void OSDTextEdit::setFontBold(bool bold)
@@ -650,6 +860,7 @@ void OSDTextEdit::on_customContextMenuRequested(const QPoint& point)
     realPoint.setY(realPoint.y() + verticalScrollBar()->value());
 
     auto imgName = document()->documentLayout()->imageAt(realPoint);
+    auto curTable = textCursor().currentTable();
 
     QMenu *menu = createStandardContextMenu();
     if(!imgName.isEmpty())
@@ -661,6 +872,27 @@ void OSDTextEdit::on_customContextMenuRequested(const QPoint& point)
         QAction *copyImgAction = new QAction(tr("Copy Image"), menu);
         connect(copyImgAction, SIGNAL(triggered()), this, SLOT(on_copyImage()));
         menu->addAction(copyImgAction);
+    }
+    else if(curTable)
+    {
+        QAction *insertRow = new QAction(tr("Insert Row"), menu);
+        connect(insertRow, SIGNAL(triggered()), this, SLOT(on_insertRow()));
+        menu->addAction(insertRow);
+        QAction *appendRow = new QAction(tr("Append Row"), menu);
+        connect(appendRow, SIGNAL(triggered()), this, SLOT(on_appendRow()));
+        menu->addAction(appendRow);
+        QAction *removedRow = new QAction(tr("Remove Row"), menu);
+        connect(removedRow, SIGNAL(triggered()), this, SLOT(on_removeRow()));
+        menu->addAction(removedRow);
+        QAction *insertColumn = new QAction(tr("Insert Column"), menu);
+        connect(insertColumn, SIGNAL(triggered()), this, SLOT(on_insertColumn()));
+        menu->addAction(insertColumn);
+        QAction *appendColumn = new QAction(tr("Append Column"), menu);
+        connect(appendColumn, SIGNAL(triggered()), this, SLOT(on_appendColumn()));
+        menu->addAction(appendColumn);
+        QAction *removeColumn = new QAction(tr("Remove Column"), menu);
+        connect(removeColumn, SIGNAL(triggered()), this, SLOT(on_removeColumn()));
+        menu->addAction(removeColumn);
     }
     menu->exec(QCursor::pos());
     delete menu;
@@ -695,6 +927,78 @@ void OSDTextEdit::on_copyImage()
                 QUrl(mClickedImgName)).value<QImage>();
 
     QApplication::clipboard()->setImage(img);
+}
+
+void OSDTextEdit::on_insertRow()
+{
+    auto cursor = textCursor();
+    auto curTable = cursor.currentTable();
+
+    if(curTable)
+    {
+        auto cell = curTable->cellAt(cursor);
+        curTable->insertRows(cell.row(), 1);
+    }
+}
+
+void OSDTextEdit::on_appendRow()
+{
+    auto cursor = textCursor();
+    auto curTable = cursor.currentTable();
+
+    if(curTable)
+    {
+        auto cell = curTable->cellAt(cursor);
+        curTable->insertRows(cell.row() + 1, 1);
+    }
+}
+
+void OSDTextEdit::on_removeRow()
+{
+    auto cursor = textCursor();
+    auto curTable = cursor.currentTable();
+
+    if(curTable)
+    {
+        auto cell = curTable->cellAt(cursor);
+        curTable->removeRows(cell.row(), 1);
+    }
+}
+
+void OSDTextEdit::on_insertColumn()
+{
+    auto cursor = textCursor();
+    auto curTable = cursor.currentTable();
+
+    if(curTable)
+    {
+        auto cell = curTable->cellAt(cursor);
+        curTable->insertColumns(cell.column(), 1);
+    }
+}
+
+void OSDTextEdit::on_appendColumn()
+{
+    auto cursor = textCursor();
+    auto curTable = cursor.currentTable();
+
+    if(curTable)
+    {
+        auto cell = curTable->cellAt(cursor);
+        curTable->insertColumns(cell.column() + 1, 1);
+    }
+}
+
+void OSDTextEdit::on_removeColumn()
+{
+    auto cursor = textCursor();
+    auto curTable = cursor.currentTable();
+
+    if(curTable)
+    {
+        auto cell = curTable->cellAt(cursor);
+        curTable->removeColumns(cell.column(), 1);
+    }
 }
 
 bool OSDTextEdit::testFlag(OSDTextEdit::OSDTextEditFlagType type) const

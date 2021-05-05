@@ -48,13 +48,27 @@ OSDConfig::OSDConfig(const QString &fileName, QObject *parent)
                               tr("Font Format Paste")));
     mCustomKeys.insert(SK_TextRShift,
                     qMakePair(QKeySequence(Qt::Key_Tab),
-                              tr("Selected Lines Right Shift")));
+                              tr("Selected Lines Right Shift\n"
+                                 "Insert Tab\n"
+                                 "Jump To Next Horizontal Table Cell")));
     mCustomKeys.insert(SK_TextLShift,
                     qMakePair(QKeySequence(Qt::SHIFT + Qt::Key_Backtab),
                               tr("Current Lines Left Shift")));
     mCustomKeys.insert(SK_SmartIndent,
                     qMakePair(QKeySequence(Qt::Key_Return),
                               tr("Smart Indent")));
+    mCustomKeys.insert(SK_HAlignment,
+                    qMakePair(QKeySequence(Qt::CTRL + Qt::Key_E),
+                              tr("Table Cell Horizontal Alignment")));
+    mCustomKeys.insert(SK_VAlignment,
+                    qMakePair(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_E),
+                              tr("Table Cell Vertical Alignment")));
+    mCustomKeys.insert(SK_TableRShift,
+                    qMakePair(QKeySequence(Qt::CTRL + Qt::Key_Q),
+                              tr("Add Table Indent")));
+    mCustomKeys.insert(SK_TableLShift,
+                    qMakePair(QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_Q),
+                              tr("Sub Table Indent")));
 
     QMap<QString, QString> cfgMap;
     QFile cfgFile(mConfigFileName);

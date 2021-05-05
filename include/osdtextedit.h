@@ -72,13 +72,20 @@ public:
     bool isFileExist() const;
     QString fileName() const;
     bool printPDF(const QString fileName);
+    void createTbl();
+    void createList(const QTextListFormat::Style &style);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void resizeEvent(QResizeEvent *e) override;
-    void tabOperation(bool isAdd);
+    bool tabOperation(bool isAdd);
     void updateBottomBlankArea();
+    bool jumpTabCell(bool isToBack);
+    bool setTabCellHAlignment();
+    bool setTabCellVAlignment();
+    bool listTabOperation(bool isToRight);
+    bool tableIndentOperation(bool isToRight);
 
 public slots:
     void setFontBold(bool bold);
@@ -96,6 +103,12 @@ public slots:
     void on_customContextMenuRequested(const QPoint& point);
     void on_saveImage();
     void on_copyImage();
+    void on_insertRow();
+    void on_appendRow();
+    void on_removeRow();
+    void on_insertColumn();
+    void on_appendColumn();
+    void on_removeColumn();
 
 private:
     bool testFlag(OSDTextEditFlagType type) const;
