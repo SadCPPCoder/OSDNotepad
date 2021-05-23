@@ -66,7 +66,6 @@ OSDTextEdit::OSDTextEdit(QWidget *parent)
 
     // initial value as modified
     setFlag(FileModifiedFlag, true);
-    setAcceptDrops(false);
 }
 
 void OSDTextEdit::insertImage(const QImage &img)
@@ -557,11 +556,6 @@ void OSDTextEdit::resizeEvent(QResizeEvent *e)
 bool OSDTextEdit::tabOperation(bool isAdd)
 {
     if(isAdd && !textCursor().hasSelection())
-    {
-        return false;
-    }
-    else if(!isAdd &&
-            !textCursor().hasSelection())
     {
         return false;
     }
@@ -1110,3 +1104,46 @@ void OSDTextEdit::insertFromMimeData(const QMimeData *source)
         QTextEdit::insertFromMimeData(source);
 }
 
+void OSDTextEdit::dragEnterEvent(QDragEnterEvent *event)
+{
+    if(event->mimeData()->hasUrls())
+    {
+        event->acceptProposedAction();
+    }
+    else
+    {
+        return QTextEdit::dragEnterEvent(event);
+    }
+}
+
+void OSDTextEdit::dragMoveEvent(QDragMoveEvent *event)
+{
+    event->acceptProposedAction();
+}
+
+void OSDTextEdit::dropEvent(QDropEvent *event)
+{
+    const QMimeData *mimeData = event->mimeData();
+    if(mimeData->hasUrls())
+    {
+        QList<QUrl> urls = mimeData->urls();
+        for(int i=0; i<urls.size(); ++i)
+        {
+            QString fileName = urls.at(i).toLocalFile();
+            QFileInfo fileInfo(fileName);
+            if(fileInfo.exists() &&
+                (!fileInfo.suffix().compare("jpg", Qt::CaseInsensitive) ||
+                 !fileInfo.suffix().compare("jpeg", Qt::CaseInsensitive) ||
+                 !fileInfo.suffix().compare("png", Qt::CaseInsensitive) ||
+                 !fileInfo.suffix().compare("bmp", Qt::CaseInsensitive)))
+            {
+                QImage image(fileName);
+                QApplication::setOverrideCursor(Qt::WaitCursor);
+                insertImage(image);
+                QApplication::restoreOverrideCursor();
+            }
+        }
+    }
+    else
+        return QTextEdit::dropEvent(event);
+}

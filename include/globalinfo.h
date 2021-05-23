@@ -10,7 +10,7 @@
 #define GLOBALINFO_H
 
 #define MAIN_VERSION_NO (1)
-#define SUB_VERSION_NO (13)
+#define SUB_VERSION_NO (14)
 #define FONT_MIN_POINT_SIZE (8)
 #define FONT_MAX_POINT_SIZE (38)
 #define DEFAULT_FONT_POINT_SIZE (14)

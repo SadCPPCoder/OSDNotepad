@@ -311,6 +311,7 @@ void MainWindow::setupExtraUi()
     mInsertListBtn->setFixedWidth(ui->toolBarFile->height());
     mInsertListBtn->setIcon(QIcon(":/res/icon/list.png"));
     mInsertListBtn->setFlat(true);
+    mInsertListBtn->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_L));
     connect(mInsertListBtn, SIGNAL(clicked()),
             this, SLOT(on_insertListBtnClicked()));
 }

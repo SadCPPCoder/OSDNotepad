@@ -426,6 +426,9 @@
    <property name="text">
     <string>Table</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
